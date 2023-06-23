@@ -13,7 +13,7 @@ except:
   sys.exit(1)
 
 run = run.PrepareBuild(sourcePath=sys.path[0])
-run.default_build_folder = 'obj-' + run.target_platform
+run.default_build_folder = f'obj-{run.target_platform}'
 run.options.add_option('--enable-debug', action='store_const', const='1', dest='debug',
                        help='Enable debugging symbols')
 run.options.add_option('--enable-optimize', action='store_const', const='1', dest='opt',

@@ -11,7 +11,7 @@ import subprocess
 import time
 
 kPackages = ['base', 'cstrike', 'dod', 'esf', 'ns', 'tfc', 'ts']
-kMacExclude = set(['esf', 'ns', 'ts'])
+kMacExclude = {'esf', 'ns', 'ts'}
 
 class PackageBuilder(object):
     def __init__(self, args):
@@ -24,12 +24,9 @@ class PackageBuilder(object):
         elif platform.system() == 'Darwin':
             self.os_ = 'mac'
         else:
-            raise Exception('Unknown platform: {}'.format(platform.system()))
+            raise Exception(f'Unknown platform: {platform.system()}')
 
-        if self.os_ == 'linux':
-            self.archive_type_ = 'tar.gz'
-        else:
-            self.archive_type_ = 'zip'
+        self.archive_type_ = 'tar.gz' if self.os_ == 'linux' else 'zip'
         self.packages_ = []
 
     def run(self):
@@ -42,7 +39,7 @@ class PackageBuilder(object):
             self.upload()
 
     def build(self):
-        print("Creating package for {}".format(self.version_))
+        print(f"Creating package for {self.version_}")
 
         for package in kPackages:
             if self.os_ == 'mac' and package in kMacExclude:
@@ -63,9 +60,9 @@ class PackageBuilder(object):
     def upload(self):
 
         m = re.search("^(\d+)\.(\d+)", self.version_)
-        ftp_path = '{}/{}.{}'.format(self.ftp_path_, m.group(1), m.group(2))
+        ftp_path = f'{self.ftp_path_}/{m[1]}.{m[2]}'
 
-        print("Connecting to drop site: {}".format(ftp_path))
+        print(f"Connecting to drop site: {ftp_path}")
         ftp = ftplib.FTP(self.ftp_host_)
         ftp.login(self.ftp_user_, self.ftp_pass_)
         ftp.set_pasv(True)
@@ -79,12 +76,13 @@ class PackageBuilder(object):
 
     def upload_package(self, ftp, package_file, dest_name):
         with open(package_file, 'rb') as fp:
-            print("Sending {} as {}".format(package_file, dest_name))
-            ftp.storbinary('STOR {}'.format(dest_name), fp)
+            print(f"Sending {package_file} as {dest_name}")
+            ftp.storbinary(f'STOR {dest_name}', fp)
 
     def build_package(self, package):
-        package_file = 'amxmodx-{}-{}-{}.{}'.format(self.version_, package, self.os_,
-                                                    self.archive_type_)
+        package_file = (
+            f'amxmodx-{self.version_}-{package}-{self.os_}.{self.archive_type_}'
+        )
         if os.path.exists(package_file):
             os.unlink(package_file)
 
@@ -93,7 +91,7 @@ class PackageBuilder(object):
         else:
             Run(['zip', '-r', package_file, 'addons'])
 
-        alt_name = 'amxmodx-latest-{}-{}.{}'.format(package, self.os_, self.archive_type_)
+        alt_name = f'amxmodx-latest-{package}-{self.os_}.{self.archive_type_}'
         return package_file, alt_name
 
     def read_ftp_info(self):
@@ -111,9 +109,8 @@ class PackageBuilder(object):
         output = subprocess.check_output(['git', 'rev-list', '--count', 'HEAD'],
                                          universal_newlines = True,
                                          stderr = subprocess.STDOUT)
-        output = output.strip()
-        if output:
-            self.version_ += '-git' + output
+        if output := output.strip():
+            self.version_ += f'-git{output}'
 
 def main():
     parser = argparse.ArgumentParser()
